@@ -784,7 +784,7 @@ static RACSignal *combineAttributeAndSignals(NSLayoutAttribute attribute, NSArra
 					return nil;
 			}
 		} else {
-			rect = MEDRectGrow(rect, n, (CGRectEdge)edge.unsignedIntegerValue);
+			rect = (CGRect)MEDRectGrow(rect, n, (CGRectEdge)edge.unsignedIntegerValue);
 		}
 
 		return MEDBox(CGRectStandardize(rect));
