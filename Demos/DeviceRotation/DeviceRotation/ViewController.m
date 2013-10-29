@@ -52,13 +52,18 @@
 
 	// Purposely misaligned to demonstrate automatic pixel alignment when
 	// binding to RCL's UIView properties.
-	RACSignal *insetRect = [self.view.rcl_boundsSignal insetWidth:RCLBox(16.25) height:RCLBox(24.75)];
+	RACSignal *insetRect = [self.view.rcl_boundsSignal insetWidth:RCLBox(16.25) height:RCLBox(24.75) nullRect:CGRectNull];
 
 	// Dynamically change the text of nameLabel based on the current
 	// orientation.
-	RAC(self.nameLabel.text) = [self.rotationSignal map:^(NSNumber *orientation) {
-		return (UIInterfaceOrientationIsPortrait(orientation.integerValue) ? NSLocalizedString(@"Portrait!", @"") : NSLocalizedString(@"Landscape awww yeaahhh", @""));
-	}];
+	RAC(self.nameLabel, text) = [[[self.rotationSignal
+		map:^(NSNumber *orientation) {
+			return @(UIInterfaceOrientationIsPortrait(orientation.integerValue));
+		}]
+		startWith:@YES]
+		map:^(NSNumber *isPortait) {
+			return (isPortait.boolValue ? NSLocalizedString(@"Portrait!", @"") : NSLocalizedString(@"Landscape awww yeaahhh", @""));
+		}];
 
 	// Horizontally divide the available space into a rect for the label and
 	// a rect for the text field.
@@ -80,7 +85,7 @@
 	// Animate the initial appearance of the text field, but not any changes due
 	// to rotation.
 	RACSignal *initialRect = [[textFieldRect take:1] animateWithDuration:1 curve:RCLAnimationCurveEaseOut];
-	RAC(self.nameTextField.rcl_alignmentRect) = [initialRect concat:textFieldRect];
+	RAC(self.nameTextField, rcl_alignmentRect) = [initialRect concat:textFieldRect];
 }
 
 - (void)viewWillAppear:(BOOL)animated {

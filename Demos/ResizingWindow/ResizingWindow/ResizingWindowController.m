@@ -7,7 +7,7 @@
 //
 
 #import "ResizingWindowController.h"
-#import "EXTScope.h"
+#import <ReactiveCocoa/EXTScope.h>
 
 @interface ResizingWindowController ()
 
@@ -68,25 +68,23 @@
 	self.confirmEmailField = [self textFieldWithString:@""];
 	self.nameField = [self textFieldWithString:@""];
 
-	// Work around NSControl.stringValue not being documented as KVO-compliant by
-	// binding to our own KVO-compliant property instead.
-	[self.emailField rac_bind:NSValueBinding toObject:self withKeyPath:@keypath(self.email) nilValue:@""];
-
 	// The confirmation field should only be visible when some text is entered
 	// in the email field.
-	RAC(self.confirmEmailVisible) = [RACAble(self.email) map:^(NSString *str) {
-		return @(str.length > 0);
-	}];
+	RAC(self, confirmEmailVisible) = [[self.emailField.rac_textSignal
+		skip:1]
+		map:^(NSString *str) {
+			return @(str.length > 0);
+		}];
 
 	// For the confirmation field, start with an alpha of 0, and then animate
 	// any changes thereafter.
-	RACSignal *confirmAlpha = [[RACSignal zero] concat:[RACAbleWithStart(self.confirmEmailVisible) animate]];
+	RACSignal *confirmAlpha = [[RACSignal zero] concat:[RACObserve(self, confirmEmailVisible) animate]];
 
-	RAC(self.confirmEmailLabel.rcl_alphaValue) = confirmAlpha;
-	RAC(self.confirmEmailField.rcl_alphaValue) = confirmAlpha;
+	RAC(self.confirmEmailLabel, rcl_alphaValue) = confirmAlpha;
+	RAC(self.confirmEmailField, rcl_alphaValue) = confirmAlpha;
 
 	// We want to align all the text fields with the longest label.
-	RAC(self.labelWidth) = [RACSignal max:@[
+	RAC(self, labelWidth) = [RACSignal max:@[
 		self.nameLabel.rcl_intrinsicWidthSignal,
 		self.emailLabel.rcl_intrinsicWidthSignal,
 		self.confirmEmailLabel.rcl_intrinsicWidthSignal,
@@ -97,7 +95,7 @@
 	RACTupleUnpack(RACSignal *emailRect, RACSignal *possibleConfirmEmailRect) = [[self.contentView.rcl_frameSignal
 		// Purposely misaligned to demonstrate automatic pixel alignment when
 		// binding to RCL's NSView properties.
-		insetWidth:RCLBox(32.25) height:RCLBox(16.75)]
+		insetWidth:RCLBox(32.25) height:RCLBox(16.75) nullRect:CGRectZero]
 		divideWithAmount:self.emailField.rcl_intrinsicHeightSignal padding:self.verticalPadding fromEdge:NSLayoutAttributeTop];
 
 	[self layoutField:self.emailField label:self.emailLabel fromSignal:emailRect];
@@ -106,17 +104,21 @@
 	// supposed to be visible.
 	//
 	// First, choose the appropriate signal based on the BOOL…
-	RACSignal *confirmHeightPlusPadding = [[[[[RACSignal if:RACAbleWithStart(self.confirmEmailVisible)
+	RACSignal *confirmHeightPlusPadding = [[[[[RACSignal if:RACObserve(self, confirmEmailVisible)
 		then:[self.confirmEmailField.rcl_intrinsicHeightSignal plus:self.verticalPadding]
 		else:[RACSignal zero]]
 		// Then animate all changes.
-		animate]
-		doNext:^(NSNumber *height) {
-			NSLog(@"Animating confirmEmailField to height %@", height);
+		animatedSignals]
+		map:^(RACSignal *animation) {
+			return [[animation
+				doNext:^(NSNumber *height) {
+					NSLog(@"Animating confirmEmailField to height %@", height);
+				}]
+				doCompleted:^{
+					NSLog(@"confirmEmailField is done animating");
+				}];
 		}]
-		doAnimationCompleted:^(NSNumber *height) {
-			NSLog(@"confirmEmailField is now at height %@", height);
-		}]
+		switchToLatest]
 		replayLast];
 
 	// Cut out space for the confirmation email field.
@@ -136,7 +138,7 @@
 - (void)layoutField:(NSTextField *)field label:(NSTextField *)label fromSignal:(RACSignal *)signal {
 	// Split the rect horizontally, into a rect for the label and a rect for the
 	// text field.
-	RACTupleUnpack(RACSignal *labelRect, RACSignal *fieldRect) = [signal divideWithAmount:RACAbleWithStart(self.labelWidth) padding:self.horizontalPadding fromEdge:NSLayoutAttributeLeading];
+	RACTupleUnpack(RACSignal *labelRect, RACSignal *fieldRect) = [signal divideWithAmount:RACObserve(self, labelWidth) padding:self.horizontalPadding fromEdge:NSLayoutAttributeLeading];
 
 	RAC(field, rcl_alignmentRect) = fieldRect;
 	RCLAlignment(label) = @{

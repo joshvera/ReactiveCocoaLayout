@@ -7,11 +7,12 @@
 //
 
 #import "NSView+RCLGeometryAdditions.h"
-#import "EXTScope.h"
-#import "NSNotificationCenter+RACSupport.h"
 #import "RACSignal+RCLAnimationAdditions.h"
 #import "View+RCLAutoLayoutAdditions.h"
+#import <Archimedes/Archimedes.h>
 #import <objc/runtime.h>
+#import <ReactiveCocoa/EXTScope.h>
+#import <ReactiveCocoa/ReactiveCocoa.h>
 
 @implementation NSView (RCLGeometryAdditions)
 
@@ -31,7 +32,7 @@
 
 - (void)setRcl_frame:(CGRect)frame {
 	if (self.superview != nil && self.window != nil) {
-		// Matches the behavior of CGRectFloor().
+		// Matches the behavior of MEDRectFloor().
 		NSAlignmentOptions options = NSAlignMinXOutward | NSAlignMinYInward | NSAlignWidthInward | NSAlignHeightInward;
 
 		CGRect windowFrame = [self.superview convertRect:frame toView:nil];
@@ -52,7 +53,7 @@
 
 - (void)setRcl_bounds:(CGRect)bounds {
 	if (self.window != nil) {
-		// Matches the behavior of CGRectFloor().
+		// Matches the behavior of MEDRectFloor().
 		NSAlignmentOptions options = NSAlignMinXOutward | NSAlignMinYInward | NSAlignWidthInward | NSAlignHeightInward;
 
 		CGRect windowRect = [self convertRect:bounds toView:nil];
@@ -112,7 +113,7 @@
 		distinctUntilChanged]
 		subscribe:subject];
 
-	[self rac_addDeallocDisposable:[RACDisposable disposableWithBlock:^{
+	[self.rac_deallocDisposable addDisposable:[RACDisposable disposableWithBlock:^{
 		[disposable dispose];
 		[subject sendCompleted];
 	}]];
@@ -138,7 +139,7 @@
 		distinctUntilChanged]
 		subscribe:subject];
 
-	[self rac_addDeallocDisposable:[RACDisposable disposableWithBlock:^{
+	[self.rac_deallocDisposable addDisposable:[RACDisposable disposableWithBlock:^{
 		[disposable dispose];
 		[subject sendCompleted];
 	}]];
@@ -148,7 +149,7 @@
 
 - (RACSignal *)rcl_baselineSignal {
 	RACSubject *deallocSubject = [RACReplaySubject replaySubjectWithCapacity:1];
-	[self rac_addDeallocDisposable:[RACDisposable disposableWithBlock:^{
+	[self.rac_deallocDisposable addDisposable:[RACDisposable disposableWithBlock:^{
 		[deallocSubject sendCompleted];
 	}]];
 

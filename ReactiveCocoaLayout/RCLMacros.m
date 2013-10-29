@@ -7,8 +7,8 @@
 //
 
 #import "RCLMacros.h"
-#import "EXTScope.h"
 #import "RACSignal+RCLGeometryAdditions.h"
+#import <ReactiveCocoa/EXTScope.h>
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #import "UIView+RCLGeometryAdditions.h"
@@ -67,7 +67,7 @@ static NSString *NSStringFromRCLAttribute(RCLAttribute attribute) __attribute__(
 	NSParameterAssert(property != nil);
 	NSParameterAssert([bindings isKindOfClass:NSDictionary.class]);
 
-	[[self rectSignalFromBindings:bindings] toProperty:property onObject:self.view];
+	[[self rectSignalFromBindings:bindings] setKeyPath:property onObject:self.view];
 }
 
 #pragma mark Attribute Parsing
